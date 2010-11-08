@@ -30,10 +30,9 @@ class syntax_plugin_itemtable extends DokuWiki_Syntax_Plugin {
                      'email'  => 'develop@otri.de',
                      'date'   => '2010-11-06',
                      'name'   => 'Item Table',
-                     'desc'   => 'Draw Items in a table structure in a Wiki',
-                     'url'    => 'https://github.com/otriesch/itemtable/blob/master/itemtable.zip');
+                     'desc'   => 'Renders tables in DokuWiki format by using itemlists instead of the Wiki syntax',
+                     'url'    => 'https://github.com/otriesch/itemtable/raw/master/itemtable.zip');
     }
-
     function getType() { return 'substition'; }
     function getSort() { return 32; }
 
