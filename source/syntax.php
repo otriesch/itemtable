@@ -68,11 +68,12 @@ class syntax_plugin_itemtable extends DokuWiki_Syntax_Plugin {
     function render_tables($match,$mode,$data) {
       // $match is the full text we're to consider
       $raw=explode("\n",$match);
-      
+    
+//    $TableData.=$this->options["test"];  
 //    foreach($this->options as $option) {
 //      $TableData.=$option." ";
-//		}
-//		$TableData.="\n\n\n";
+//    }
+//    $TableData.="\n\n\n";
 		
       // Yes, so draw the heading
       if (trim($this->options["header"])!=""){
@@ -84,51 +85,71 @@ class syntax_plugin_itemtable extends DokuWiki_Syntax_Plugin {
 
       // Draw the descriptors of each field
       $TableData.="^ ";
-      for($ColPos=1;$ColPos<=$this->options["cols"];$ColPos++)
-              $TableData.="^".$this->options["c".$ColPos]." ";
+      for($ColPos=0;$ColPos<$this->options["cols"];$ColPos++)
+              $TableData.="^".$this->options["__col"][$ColPos]." ";
       $TableData.="^\n";
       
-      for($ColPos=1;$ColPos<=$this->options["cols"];$ColPos++) {
-  	     $RowElements["c".$ColPos]=" ";
+      for($ColPos=0;$ColPos<$this->options["cols"];$ColPos++) {
+  	     $RowElements["__col"][$ColPos]=" ";
       }
 		$RowCount=0;
+		$CellActive=0;
 		      
       // Run through each line and decide how to render the text      
       foreach($raw as $rawline) {
-        $CurrentLine=trim($rawline);
-        if ($CurrentLine!=""){
-          // Is this row the name of a table?
-          if (substr($rawline,0,1)==$this->options["thead"]) {
-            if ($RowCount!=0) {
-			     // Go through each entity and output it
-			     for($ColPos=1;$ColPos<=$this->options["cols"];$ColPos++) {
-			  	    $TableData.="|".$RowElements["c".$ColPos]."  ";
-			     }
-              // SHIP IT!
-              $TableData.="|\n";
-            }
-            // Remember the current row name
-      		$TableData.="|".substr($rawline,1)."  ";
-      		for($ColPos=1;$ColPos<=$this->options["cols"];$ColPos++) {
-  	     		  $RowElements["c".$ColPos]=" ";
-  	     		}
-				$RowCount++;
+        //In case we have to read a multiline input for one cell
+        if ($CellActive) {
+			 if (strstr($rawline,$this->options["cell_off"])) {
+				$RowElements["__col"][$CellActive-1].=" ".substr($rawline,0,strpos($rawline,$this->options["cell_off"]));
+				$CellActive=0;
           } else {
-            // Split the fields up.
-            $RowInfo=explode($this->options["fdelim"],$rawline);
-            if (count($RowInfo)>=2) {
-      		  for($ColPos=1;$ColPos<=$this->options["cols"];$ColPos++) {
-           		 if ($RowInfo[0]==$this->options["c".$ColPos]) {
-           		   $RowElements["c".$ColPos]=$RowInfo[1];
-           		 } 
-				  }
-            }
+            $RowElements["__col"][$CellActive-1].=" ".$rawline;
           }
-        }
-      }
+        } else {
+	        $CurrentLine=trim($rawline);
+	        if ($CurrentLine!=""){
+	          // Is this row the name of a row?
+	          if (substr($rawline,0,1)==$this->options["thead"]) {
+	            if ($RowCount!=0) {
+				     // Go through each entity and output it
+				     for($ColPos=0;$ColPos<$this->options["cols"];$ColPos++) {
+				  	    $TableData.="|".$RowElements["__col"][$ColPos]."  ";
+				     }
+	              // SHIP IT!
+	              $TableData.="|\n";
+	            }
+	            // Remember the current row name
+	      		$TableData.="|".substr($rawline,1)."  ";
+	      		for($ColPos=0;$ColPos<$this->options["cols"];$ColPos++) {
+	  	     		  $RowElements["__col"][$ColPos]=" ";
+	  	     		}
+					$RowCount++;
+	          } else {
+	            // Split the fields up.
+	            $RowInfo=explode($this->options["fdelim"],$rawline);
+	            if (count($RowInfo)>=2) {
+	      		  for($ColPos=0;$ColPos<$this->options["cols"];$ColPos++) {
+	           		 if ($RowInfo[0]==$this->options["__col"][$ColPos]) {
+							$r=substr($rawline,strlen($RowInfo[0])+1);
+							if (strstr($r,$this->options["cell_on"])) {
+							  $r=substr(strstr($r,$this->options["cell_on"]),strlen($this->options["cell_on"]));
+							  if (strstr($r,$this->options["cell_off"])) {
+							    $r=substr($r,0,strpos($r,$this->options["cell_off"]));
+							  } else {
+							    $CellActive=$ColPos+1;
+							  }
+							} 
+	           		   $RowElements["__col"][$ColPos]=$r;
+	           		 } 
+					  }
+	            }
+	          }
+	        }
+	     }
+	   }
       // Go through each entity and output it
-   	for($ColPos=1;$ColPos<=$this->options["cols"];$ColPos++) {
-  		  $TableData.="|".$RowElements["c".$ColPos]."  ";
+   	for($ColPos=0;$ColPos<$this->options["cols"];$ColPos++) {
+  		  $TableData.="|".$RowElements["__col"][$ColPos]."  ";
       }
       // SHIP IT!
       $TableData.="|\n";
@@ -165,20 +186,31 @@ class syntax_plugin_itemtable extends DokuWiki_Syntax_Plugin {
               case DOKU_LEXER_ENTER :
                 $parmsexp=explode(';',$match);
                 // Set the relevant default values
-                $this->options["fdelim"]=":"; // The character used to delimit what goes between fields
+                $this->options["fdelim"]="="; // The character used to delimit what goes between fields
                 $this->options["header"]=""; // 
+                $this->options["__col"]=array();
+                $this->options["cell_on"]="<tablecell>";
+                $this->options["cell_off"]="</tablecell>";
                 $this->options["thead"]="_";  // The character used to indicate the table name
                 // $this->options["twidth"]  // Default HTML table width in HTML specifications (IE: 95% - 960px)
                 // $this->options["norender"] -> Assign a value to NOT render from Dokuwiki to HTML
                 
                 // Prepare each option
+//          $this->options["test"]=""; 
                 $this->options["cols"]=0; 
                 foreach($parmsexp as $pexp) {
                   $p=explode("=",$pexp);
-                  $this->options[trim($p[0])]=$p[1];
+                  $p[0]=trim($p[0]);
                   if (substr($p[0],0,1)=="c") {
-                    $this->options["cols"]++;
-                  }
+                    $pp=explode(",",$p[1]);
+//			$this->options["test"].=" p[0]=".$p[0]." p[1]=".$p[1]." pp[0]=".$pp[0]." pp[1]=".$pp[1]."\\ \n";
+						  $this->options["__col"]=array_merge ($this->options["__col"],$pp);
+                    foreach($pp as $ppexp) {
+                      $this->options["cols"]++;
+						  }                    
+                  } else {
+                    $this->options[$p[0]]=$p[1];
+                  }  
                 }
                 break;
               // This happens each line between <dbtables> and </dbtables>
