@@ -3,7 +3,7 @@
  * Plugin itemtable: Renders tables in DokuWiki format by using itemlists instead of the Wiki syntax (very helpful for big tables with a lot of text)
  *
  * @license    GPL 2 (http://www.gnu.org/licenses/gpl.html)
- * @author     Olaf Trieschmann <trieschmann@otri.de>
+ * @author     Olaf Trieschmann <develop@otri.de>
  *
  * Thanks to Stephen C's plugin "dbtables", which was used as a starting point!
  */
